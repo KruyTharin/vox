@@ -45,6 +45,16 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --color-player-bg: #060914;
+  --color-player-surface: #0a0f1f;
+  --color-player-fg: #f0f3fa;
+  --color-player-muted: #8b92a8;
+  --color-player-accent: #e11d2e;
+  --color-player-border: oklch(1 0 0 / 8%);
+  --color-player-track: #252b3d;
+  --color-player-active-row: oklch(0.55 0.22 25 / 14%);
+  --color-player-pill: #141a2a;
+  --shadow-player: 0 28px 90px -24px oklch(0 0 0 / 55%);
 }
 
 :root {
@@ -122,5 +132,42 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@keyframes music-eq-bar {
+  0%,
+  100% {
+    height: 22%;
+    opacity: 0.85;
+  }
+  50% {
+    height: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes music-art-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.55 0.24 25 / 25%);
+  }
+  50% {
+    box-shadow: 0 0 0 10px oklch(0.55 0.24 25 / 0%);
+  }
+}
+
+@layer utilities {
+  .music-eq-bar {
+    height: 40%;
+    min-height: 3px;
+    align-self: stretch;
+    max-height: 14px;
+    transform-origin: center bottom;
+    animation: music-eq-bar 0.42s ease-in-out infinite alternate;
+  }
+
+  .music-art-pulse {
+    animation: music-art-pulse 1.8s ease-in-out infinite;
   }
 }
