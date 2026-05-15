@@ -2,8 +2,6 @@
 
 import { MUSIC_PLAYER_VIDEO_HEIGHT, MUSIC_PLAYER_VIDEO_WIDTH } from "@/lib/music-player-remotion-layout";
 import {
-  REMOTION_EXPORT_MAX_TRACKS,
-  REMOTION_EXPORT_PLAY_CAP_SEC,
   REMOTION_FPS,
   formatTime,
   getRemotionPreviewDurationSec,
@@ -21,7 +19,7 @@ export type MusicPlayerExportPreviewProps = {
   tracks: Track[];
 };
 
-/** Full playlist + full `durationSec` per track (uncapped). Server MP4 stays shorter. */
+/** Full playlist + full `durationSec` per track. Server MP4 now matches this. */
 export function MusicPlayerExportPreview({ tracks }: MusicPlayerExportPreviewProps) {
   const durationInFrames = useMemo(
     () => getRemotionTotalFrames(tracks, REMOTION_FPS, null),
@@ -37,9 +35,8 @@ export function MusicPlayerExportPreview({ tracks }: MusicPlayerExportPreviewPro
     <div className="space-y-2">
       <h4 className="text-sm font-semibold">Export preview</h4>
       <p className="text-player-muted text-xs">
-        Full playlist ({tracks.length} songs), full track lengths ({previewDurationLabel} timeline)—not the same as
-        the download, which is still the first {REMOTION_EXPORT_MAX_TRACKS} songs capped at ~{REMOTION_EXPORT_PLAY_CAP_SEC}
-        s each for speed. Muted so it does not overlap the main player.
+        Full playlist ({tracks.length} songs), full track lengths ({previewDurationLabel} timeline).
+        The downloaded MP4 matches this preview. Muted so it does not overlap the main player.
       </p>
       <div className="border-player-border overflow-hidden rounded-lg border bg-[#060914]">
         <Player

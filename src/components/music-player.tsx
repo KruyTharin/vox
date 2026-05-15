@@ -20,10 +20,13 @@ export function MusicPlayer() {
   const [currentSec, setCurrentSec] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [mediaDuration, setMediaDuration] = useState<number | null>(null);
+  const [draftTitle, setDraftTitle] = useState("");
   const [draftArtist, setDraftArtist] = useState("");
   const [draftCover, setDraftCover] = useState("");
+  const [draftAudioUrl, setDraftAudioUrl] = useState("");
   const [videoDownloadPending, setVideoDownloadPending] = useState(false);
   const [videoDownloadError, setVideoDownloadError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const tracksRef = useRef(tracks);
 
@@ -77,8 +80,10 @@ export function MusicPlayer() {
     const t = tracksRef.current[selectedIndex];
     if (!t) return;
     queueMicrotask(() => {
+      setDraftTitle(t.title);
       setDraftArtist(t.artist);
       setDraftCover(t.cover);
+      setDraftAudioUrl(t.audioUrl);
     });
   }, [selectedIndex]);
 
@@ -205,8 +210,10 @@ export function MusicPlayer() {
       if (!cur) return prev;
       copy[selectedIndex] = {
         ...cur,
+        title: draftTitle.trim() || cur.title,
         artist: draftArtist.trim() || cur.artist,
         cover: draftCover.trim() || cur.cover,
+        audioUrl: draftAudioUrl.trim() || cur.audioUrl,
       };
       return copy;
     });
@@ -219,6 +226,7 @@ export function MusicPlayer() {
     setSelectedIndex(0);
     setCurrentSec(0);
     setPlaying(false);
+    setIsAdding(false);
     try {
       window.localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -236,6 +244,48 @@ export function MusicPlayer() {
     setCurrentIndex(index);
     setCurrentSec(0);
     setPlaying(true);
+  };
+
+  const handleSelectEditIndex = (index: number) => {
+    setIsAdding(false);
+    setSelectedIndex(index);
+  };
+
+  const handlePlayTrack = (index: number) => {
+    setIsAdding(false);
+    playTrack(index);
+  };
+
+  const startAdd = () => {
+    setIsAdding(true);
+    setSelectedIndex(null);
+    setDraftTitle("");
+    setDraftArtist("");
+    setDraftCover("");
+    setDraftAudioUrl("");
+  };
+
+  const cancelAdd = () => {
+    setIsAdding(false);
+  };
+
+  const saveAdd = () => {
+    const title = draftTitle.trim();
+    const artist = draftArtist.trim();
+    if (!title || !artist) return;
+    
+    const newTrack: Track = {
+      id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title,
+      artist,
+      cover: draftCover.trim() || "https://picsum.photos/seed/vox-default/800/800",
+      audioUrl: draftAudioUrl.trim() || "",
+      durationSec: 0,
+    };
+    
+    setTracks((prev) => [...prev, newTrack]);
+    setIsAdding(false);
+    setSelectedIndex(tracks.length);
   };
 
   const downloadRenderedVideo = async () => {
@@ -296,8 +346,9 @@ export function MusicPlayer() {
           onPrev={goPrev}
           onNext={goNext}
           onRestoreDefaults={resetToDefaults}
-          onSelectEditIndex={setSelectedIndex}
-          onPlayTrack={playTrack}
+          onSelectEditIndex={handleSelectEditIndex}
+          onPlayTrack={handlePlayTrack}
+          onStartAdd={startAdd}
         />
       </div>
 
@@ -305,16 +356,24 @@ export function MusicPlayer() {
         <MusicPlayerEditor
           tracks={tracks}
           selectedIndex={selectedIndex}
+          isAdding={isAdding}
+          draftTitle={draftTitle}
           draftArtist={draftArtist}
           draftCover={draftCover}
+          draftAudioUrl={draftAudioUrl}
+          onDraftTitle={setDraftTitle}
           onDraftArtist={setDraftArtist}
           onDraftCover={setDraftCover}
+          onDraftAudioUrl={setDraftAudioUrl}
           onSaveEdit={saveEdit}
           onRemoveSelected={handleRemoveSelected}
           onResetDefaults={resetToDefaults}
           onDownloadVideo={downloadRenderedVideo}
           videoDownloadPending={videoDownloadPending}
           videoDownloadError={videoDownloadError}
+          onStartAdd={startAdd}
+          onCancelAdd={cancelAdd}
+          onSaveAdd={saveAdd}
         />
       </div>
     </div>

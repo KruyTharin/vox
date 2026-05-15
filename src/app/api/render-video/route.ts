@@ -11,7 +11,7 @@ import { cpus, tmpdir } from "os";
 import { join } from "path";
 
 export const runtime = "nodejs";
-/** Export is capped per track; allow headroom for bundle + encode. */
+/** Allow long renders for full-duration playlists. */
 export const maxDuration = 900;
 
 export async function POST(request: Request) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const composition = await selectComposition({
       serveUrl,
       id: "MusicPlayerVideo",
-      inputProps: { tracks: tracksForRender },
+      inputProps: { tracks: tracksForRender, playCapSec: null },
     });
 
     const cores = cpus().length;

@@ -7,19 +7,20 @@ export type Track = {
   audioUrl: string;
 };
 
-export const STORAGE_KEY = "vox-playlist-v1";
+export const STORAGE_KEY = "vox-playlist-v2";
 
-export const DEFAULT_LIKED_IDS = ["vox-2", "vox-5"];
+export const DEFAULT_LIKED_IDS: string[] = [];
 
-/** Crossfade between tracks when one “ends” in the export (seconds). */
+/** Crossfade between tracks when one "ends" in the export (seconds). */
 export const REMOTION_TRANSITION_SEC = 0.55;
 
-/** Only the first N tracks are included in the server-rendered MP4 (temporary cap). */
-export const REMOTION_EXPORT_MAX_TRACKS = 2;
+/** Only the first N tracks are included in the server-rendered MP4. */
+export const REMOTION_EXPORT_MAX_TRACKS = 50;
 
 /**
  * Max real-time seconds per track in the exported video (shorter = much faster renders).
  * In-app playback still uses the full file; this only limits the Remotion timeline.
+ * Set to `null` in `resolvePlayCapSeconds` to use full track duration.
  */
 export const REMOTION_EXPORT_PLAY_CAP_SEC = 45;
 
@@ -46,7 +47,7 @@ export function getRemotionExportSegmentDurationSec(track: Track, playCap?: Remo
   return Math.min(raw, cap);
 }
 
-/** Frames for the “play” segment of one track. */
+/** Frames for the "play" segment of one track. */
 export function getRemotionPlayFrames(track: Track, fps: number, playCap?: RemotionPlayCapOption): number {
   return Math.max(1, Math.round(getRemotionExportSegmentDurationSec(track, playCap) * fps));
 }
@@ -68,11 +69,11 @@ export function getRemotionTotalFrames(tracks: Track[], fps: number, playCap?: R
   return Math.max(1, total);
 }
 
-/** Wall-clock length of the server-exported MP4 (first `REMOTION_EXPORT_MAX_TRACKS` tracks + transitions, default cap). */
+/** Wall-clock length of the server-exported MP4 (all tracks + transitions, full duration). */
 export function getRemotionExportDurationSec(tracks: Track[]): number {
   if (tracks.length === 0) return 0;
   const subset = tracks.slice(0, REMOTION_EXPORT_MAX_TRACKS);
-  return getRemotionTotalFrames(subset, REMOTION_FPS, undefined) / REMOTION_FPS;
+  return getRemotionTotalFrames(subset, REMOTION_FPS, null) / REMOTION_FPS;
 }
 
 /** Full playlist timeline length when uncapped (e.g. in-browser preview). */
@@ -81,7 +82,7 @@ export function getRemotionPreviewDurationSec(tracks: Track[]): number {
   return getRemotionTotalFrames(tracks, REMOTION_FPS, null) / REMOTION_FPS;
 }
 
-/** Global frame index where track `index`’s play segment begins (after prior plays + transitions). */
+/** Global frame index where track `index`'s play segment begins (after prior plays + transitions). */
 export function getRemotionPlaySegmentStartFrame(
   tracks: Track[],
   index: number,
@@ -98,64 +99,7 @@ export function getRemotionPlaySegmentStartFrame(
   return f;
 }
 
-export const DEFAULT_PLAYLIST: Track[] = [
-  {
-    id: "vox-1",
-    title: "Blinding Lights",
-    artist: "The Weeknd",
-    durationSec: 200,
-    cover: "https://images.unsplash.com/photo-1619983081563-430f63602796?w=800&q=80",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-  },
-  {
-    id: "vox-2",
-    title: "Anti-Hero",
-    artist: "Taylor Swift",
-    durationSec: 221,
-    cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-  },
-  {
-    id: "vox-3",
-    title: "Flowers",
-    artist: "Miley Cyrus",
-    durationSec: 200,
-    cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-  },
-  {
-    id: "vox-4",
-    title: "As It Was",
-    artist: "Harry Styles",
-    durationSec: 167,
-    cover: "https://picsum.photos/seed/vox-as-it-was/800/800",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-  },
-  {
-    id: "vox-5",
-    title: "Kill Bill",
-    artist: "SZA",
-    durationSec: 153,
-    cover: "https://picsum.photos/seed/vox-kill-bill/800/800",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-  },
-  {
-    id: "vox-6",
-    title: "Calm Down",
-    artist: "Rema & Selena Gomez",
-    durationSec: 239,
-    cover: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800&q=80",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3",
-  },
-  {
-    id: "vox-7",
-    title: "Cruel Summer",
-    artist: "Taylor Swift",
-    durationSec: 178,
-    cover: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&q=80",
-    audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
-  },
-];
+export const DEFAULT_PLAYLIST: Track[] = [];
 
 export function cloneDefaultPlaylist(): Track[] {
   return DEFAULT_PLAYLIST.map((t) => ({ ...t }));
@@ -174,6 +118,10 @@ export function isTrack(x: unknown): x is Track {
   );
 }
 
+function isSupportedAudioUrl(url: string): boolean {
+  return /^https?:\/\//i.test(url) || /^data:/i.test(url);
+}
+
 export function loadPersisted(): { tracks: Track[]; liked: Set<string> } {
   if (typeof window === "undefined") {
     return { tracks: cloneDefaultPlaylist(), liked: new Set(DEFAULT_LIKED_IDS) };
@@ -183,20 +131,19 @@ export function loadPersisted(): { tracks: Track[]; liked: Set<string> } {
     if (!raw) return { tracks: cloneDefaultPlaylist(), liked: new Set(DEFAULT_LIKED_IDS) };
     const parsed: unknown = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      if (parsed.length > 0 && parsed.every(isTrack)) {
-        return { tracks: parsed, liked: new Set(DEFAULT_LIKED_IDS) };
-      }
-      return { tracks: cloneDefaultPlaylist(), liked: new Set(DEFAULT_LIKED_IDS) };
+      const tracks = parsed.filter((x): x is Track => isTrack(x) && isSupportedAudioUrl(x.audioUrl));
+      return { tracks, liked: new Set(DEFAULT_LIKED_IDS) };
     }
     if (parsed && typeof parsed === "object" && "tracks" in parsed) {
       const rec = parsed as { tracks?: unknown; likedIds?: unknown };
       const ts = rec.tracks;
-      if (Array.isArray(ts) && ts.length > 0 && ts.every(isTrack)) {
+      if (Array.isArray(ts)) {
+        const tracks = ts.filter((x): x is Track => isTrack(x) && isSupportedAudioUrl(x.audioUrl));
         const liked =
           Array.isArray(rec.likedIds) && rec.likedIds.every((x): x is string => typeof x === "string")
             ? new Set(rec.likedIds)
             : new Set(DEFAULT_LIKED_IDS);
-        return { tracks: ts, liked };
+        return { tracks, liked };
       }
     }
   } catch {

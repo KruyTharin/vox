@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Track } from "@/lib/music-playlist";
 import { formatTime } from "@/lib/music-playlist";
-import { MoreHorizontal, Pause, Play, Repeat, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
+import { MoreHorizontal, Pause, Play, Plus, Repeat, Shuffle, SkipBack, SkipForward, Volume2 } from "lucide-react";
 import Image from "next/image";
 import { useRef } from "react";
 
@@ -26,6 +26,7 @@ export type MusicPlayerClassicLayoutProps = {
   onRestoreDefaults?: () => void;
   onSelectEditIndex: (index: number) => void;
   onPlayTrack: (index: number) => void;
+  onStartAdd?: () => void;
 };
 
 export function MusicPlayerClassicLayout({
@@ -46,6 +47,7 @@ export function MusicPlayerClassicLayout({
   onRestoreDefaults,
   onSelectEditIndex,
   onPlayTrack,
+  onStartAdd,
 }: MusicPlayerClassicLayoutProps) {
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -67,6 +69,12 @@ export function MusicPlayerClassicLayout({
             {onRestoreDefaults ? (
               <Button type="button" variant="outline" className="border-player-border" onClick={onRestoreDefaults}>
                 Restore default playlist
+              </Button>
+            ) : null}
+            {onStartAdd ? (
+              <Button type="button" className="bg-player-accent text-white hover:bg-player-accent/90" onClick={onStartAdd}>
+                <Plus className="size-4" />
+                Add a song
               </Button>
             ) : null}
           </div>
@@ -193,6 +201,17 @@ export function MusicPlayerClassicLayout({
             <p className="text-player-muted mt-0.5 text-sm">{tracks.length} songs</p>
           </div>
           <div className="text-player-muted flex gap-2">
+            {onStartAdd && (
+              <button
+                type="button"
+                onClick={onStartAdd}
+                className="hover:text-player-fg hover:bg-white/5 rounded-md p-2 transition-colors"
+                aria-label="Add song"
+                title="Add song"
+              >
+                <Plus className="size-5" />
+              </button>
+            )}
             <button type="button" className="hover:text-player-fg rounded-md p-2 transition-colors" aria-label="Volume">
               <Volume2 className="size-5" />
             </button>
